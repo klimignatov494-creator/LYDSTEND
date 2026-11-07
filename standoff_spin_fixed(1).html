@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Standoff 2 — Scratch V2 Spin</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at 50% 25%, #23313d 0%, #10161c 55%, #090c10 100%);
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    #particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .top-bar {
+      position: relative;
+      z-index: 10;
+      height: 50px;
+      background: rgba(13, 18, 23, 0.94);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      gap: 4px;
+    }
+
+    .back-btn {
+      width: 32px;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #cbd5e1;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin-right: 8px;
+    }
+
+    .tab {
+      height: 100%;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #94a3b8;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab.active {
+      color: #ffffff;
+      background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.08) 100%);
+      border-bottom-color: #ffffff;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    .timer-badge {
+      color: #cbd5e1;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .currency-box {
+      display: flex;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .currency-val {
+      padding: 4px 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .coin-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ef4444;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 900;
+      box-shadow: 0 0 8px #ef4444;
+    }
+
+    .add-coins {
+      background: #b91c1c;
+      color: #fff;
+      border: none;
+      padding: 4px 10px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .add-coins:hover {
+      background: #dc2626;
+    }
+
+    .main-stage {
+      position: relative;
+      z-index: 5;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+
+    /* Компактная сетка 6x3 для ПК и горизонтальных экранов */
+    .spin-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      grid-template-rows: repeat(3, 96px);
+      gap: 8px;
+      width: 100%;
+      max-width: 980px;
+    }
+
+    .item-card {
+      position: relative;
+      background: linear-gradient(145deg, rgba(28, 36, 44, 0.94), rgba(15, 20, 26, 0.98));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+      padding: 7px 9px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .tall-left-1   { grid-column: 1; grid-row: 1 / 4; }
+    .tall-center-1 { grid-column: 3; grid-row: 1 / 4; }
+    .tall-center-2 { grid-column: 4; grid-row: 1 / 4; }
+    .tall-right-1  { grid-column: 6; grid-row: 1 / 4; }
+
+    .item-card::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 3px;
+      background: var(--rarity-color);
+      box-shadow: 0 -2px 10px var(--rarity-color);
+    }
+
+    .item-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 60%, var(--rarity-bg), transparent 72%);
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .item-card.active-cursor {
+      transform: scale(1.04);
+      z-index: 15;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 22px var(--rarity-color), inset 0 0 16px rgba(255, 255, 255, 0.35);
+    }
+
+    .item-card.winner-glow {
+      animation: winPulse 0.8s infinite alternate;
+      border: 2px solid #fde047;
+      z-index: 20;
+    }
+
+    @keyframes winPulse {
+      from { box-shadow: 0 0 18px var(--rarity-color), 0 0 30px #fde047; transform: scale(1.04); }
+      to   { box-shadow: 0 0 35px var(--rarity-color), 0 0 55px #fde047; transform: scale(1.06); }
+    }
+
+    .item-header {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 4px;
+    }
+
+    .item-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: #f1f5f9;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+      line-height: 1.2;
+    }
+
+    .rarity-tag {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 1px 5px;
+      border-radius: 2px;
+      background: rgba(0, 0, 0, 0.65);
+      color: var(--rarity-color);
+      border: 1px solid var(--rarity-color);
+      white-space: nowrap;
+    }
+
+    .item-visual {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.9));
+      transition: transform 0.2s ease;
+    }
+
+    .tall-left-1 .item-visual,
+    .tall-center-1 .item-visual,
+    .tall-center-2 .item-visual,
+    .tall-right-1 .item-visual {
+      font-size: 62px;
+    }
+
+    .item-card.active-cursor .item-visual {
+      transform: scale(1.12);
+    }
+
+    .rarity-arcane    { --rarity-color: #ef4444; --rarity-bg: rgba(239, 68, 68, 0.38); }
+    .rarity-legendary { --rarity-color: #ec4899; --rarity-bg: rgba(236, 72, 153, 0.34); }
+    .rarity-epic      { --rarity-color: #a855f7; --rarity-bg: rgba(168, 85, 247, 0.34); }
+    .rarity-rare      { --rarity-color: #3b82f6; --rarity-bg: rgba(59, 130, 246, 0.32); }
+
+    .controls {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chance-btn {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .chance-btn:hover { color: #ffffff; }
+
+    .spin-button {
+      width: 210px;
+      height: 44px;
+      background: linear-gradient(180deg, #dc2626 0%, #991b1b 100%);
+      border: 1px solid #f87171;
+      border-radius: 3px;
+      color: #ffffff;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: 0 5px 20px rgba(220, 38, 38, 0.45);
+    }
+
+    .spin-button:hover:not(:disabled) {
+      background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+      box-shadow: 0 8px 26px rgba(239, 68, 68, 0.7);
+    }
+
+    .spin-button:disabled {
+      background: #334155;
+      border-color: #475569;
+      box-shadow: none;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 8, 12, 0.88);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .win-modal {
+      position: relative;
+      width: 360px;
+      max-width: 90vw;
+      padding: 28px 20px;
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+      border: 2px solid var(--win-color, #ef4444);
+      border-radius: 6px;
+      text-align: center;
+      box-shadow: 0 0 50px var(--win-color, rgba(239,68,68,0.6));
+      overflow: hidden;
+    }
+
+    .sunburst {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 520px;
+      height: 520px;
+      margin: -260px 0 0 -260px;
+      background: repeating-conic-gradient(from 0deg, rgba(255, 255, 255, 0.06) 0deg 15deg, transparent 15deg 30deg);
+      animation: rotateRays 14s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes rotateRays { to { transform: rotate(360deg); } }
+
+    .win-title {
+      position: relative;
+      font-size: 12px;
+      letter-spacing: 2.5px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .win-item-name {
+      position: relative;
+      font-size: 22px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 8px;
+      text-shadow: 0 0 16px var(--win-color);
+    }
+
+    .win-st-badge {
+      position: relative;
+      display: inline-block;
+      padding: 3px 9px;
+      background: rgba(251, 191, 36, 0.18);
+      border: 1px solid #fbbf24;
+      color: #fde047;
+      font-weight: 700;
+      font-size: 12px;
+      border-radius: 3px;
+      margin-bottom: 12px;
+    }
+
+    .win-preview {
+      position: relative;
+      font-size: 76px;
+      margin: 10px 0 20px;
+      filter: drop-shadow(0 0 20px var(--win-color));
+    }
+
+    .claim-btn {
+      position: relative;
+      padding: 10px 34px;
+      background: #ffffff;
+      color: #0f172a;
+      border: none;
+      border-radius: 3px;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      cursor: pointer;
+    }
+
+    /* Адаптация под узкие экраны (вертикальный телефон) */
+    @media (max-width: 720px) {
+      .top-bar { padding: 0 10px; height: 46px; }
+      .tab { padding: 0 10px; font-size: 11px; }
+      .timer-badge { display: none; }
+      .main-stage { padding: 10px; }
+      .spin-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(5, 76px);
+        gap: 6px;
+      }
+      .tall-left-1, .tall-center-1, .tall-center-2, .tall-right-1 {
+        grid-column: auto;
+        grid-row: auto;
+      }
+      .tall-left-1 .item-visual,
+      .tall-center-1 .item-visual,
+      .tall-center-2 .item-visual,
+      .tall-right-1 .item-visual {
+        font-size: 32px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="particles"></canvas>
+
+  <header class="top-bar">
+    <div class="nav-left">
+      <div class="back-btn">&#8249;</div>
+      <div class="tab active">SPIN</div>
+      <div class="tab">MISSIONS</div>
+      <div class="tab">REWARDS</div>
+    </div>
+    <div class="nav-right">
+      <div class="timer-badge">20d 22h</div>
+      <div class="currency-box">
+        <div class="currency-val"><span class="coin-icon">S</span> <span id="balance">1000</span></div>
+        <button class="add-coins" id="addCoinsBtn">+500</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-stage">
+    <div class="spin-grid" id="spinGrid"></div>
+    <div class="controls">
+      <button class="chance-btn" id="infoBtn">&#9432; Chance Info (Нажми для просмотра шансов)</button>
+      <button class="spin-button" id="spinBtn">
+        <span>100</span>
+        <span class="coin-icon">S</span>
+      </button>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="winModal">
+    <div class="win-modal" id="winModalCard">
+      <div class="sunburst"></div>
+      <div class="win-title">ПОЛУЧЕНА НАГРАДА</div>
+      <div class="win-item-name" id="winName">Mantis "Scratch V2"</div>
+      <div id="winBadgeContainer"></div>
+      <div class="win-preview" id="winPreview">&#128481;</div>
+      <button class="claim-btn" id="claimBtn">ЗАБРАТЬ</button>
+    </div>
+  </div>
+
+  <script>
+    const ITEMS = [
+      { name: 'Mantis "Scratch V2"',         rarity: 'arcane',    label: 'ARCANE',    weight: 0.35,  stChance: 0.136,  layout: 'tall-left-1',   icon: '🗡️' },
+      { name: 'Mallard "Infection"',         rarity: 'rare',      label: 'RARE',      weight: 37.36, stChance: 0.0834, layout: '',              icon: '🔫' },
+      { name: 'Agent T "Scratch" Red Viper', rarity: 'arcane',    label: 'ARCANE',    weight: 0.31,  stChance: 0.000,  layout: 'tall-center-1', icon: '🥷' },
+      { name: 'Agent T "Scratch" Raven',     rarity: 'arcane',    label: 'ARCANE',    weight: 0.31,  stChance: 0.000,  layout: 'tall-center-2', icon: '🕵️' },
+      { name: 'FN FAL "Scratch V2"',         rarity: 'arcane',    label: 'ARCANE',    weight: 0.31,  stChance: 0.136,  layout: '',              icon: '🎯' },
+      { name: 'Gloves "Scratch V2"',         rarity: 'arcane',    label: 'ARCANE',    weight: 0.31,  stChance: 0.000,  layout: 'tall-right-1',  icon: '🧤' },
+      { name: 'UMP45 "Emberbird"',           rarity: 'legendary', label: 'LEGENDARY', weight: 5.45,  stChance: 0.0826, layout: '',              icon: '🔥' },
+      { name: 'AKR "Arcane Surge"',          rarity: 'epic',      label: 'EPIC',      weight: 13.63, stChance: 0.0832, layout: '',              icon: '⚡' },
+      { name: 'M4A1 "Raider"',               rarity: 'epic',      label: 'EPIC',      weight: 13.64, stChance: 0.0832, layout: '',              icon: '💀' },
+      { name: 'G22 "Scratch"',               rarity: 'rare',      label: 'RARE',      weight: 37.37, stChance: 0.0834, layout: '',              icon: '🛡️' }
+    ];
+
+    const gridEl = document.getElementById('spinGrid');
+    const spinBtn = document.getElementById('spinBtn');
+    const balanceEl = document.getElementById('balance');
+    const winModal = document.getElementById('winModal');
+    const winModalCard = document.getElementById('winModalCard');
+    const winNameEl = document.getElementById('winName');
+    const winPreviewEl = document.getElementById('winPreview');
+    const winBadgeContainer = document.getElementById('winBadgeContainer');
+
+    let balance = 1000;
+    let isSpinning = false;
+    const cardElements = [];
+
+    for (let i = 0; i < ITEMS.length; i++) {
+      const item = ITEMS[i];
+      const card = document.createElement('div');
+      card.className = 'item-card rarity-' + item.rarity + (item.layout ? ' ' + item.layout : '');
+
+      const header = document.createElement('div');
+      header.className = 'item-header';
+
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'item-name';
+      nameDiv.textContent = item.name;
+
+      const tagDiv = document.createElement('div');
+      tagDiv.className = 'rarity-tag';
+      tagDiv.textContent = item.label;
+
+      const visualDiv = document.createElement('div');
+      visualDiv.className = 'item-visual';
+      visualDiv.textContent = item.icon;
+
+      header.appendChild(nameDiv);
+      header.appendChild(tagDiv);
+      card.appendChild(header);
+      card.appendChild(visualDiv);
+      gridEl.appendChild(card);
+      cardElements.push(card);
+    }
+
+    let audioCtx = null;
+
+    function playTickSound(pitch) {
+      try {
+        if (!audioCtx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) audioCtx = new AC();
+        }
+        if (!audioCtx) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(pitch, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.045);
+
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.045);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.05);
+      } catch (e) {}
+    }
+
+    function pickWinnerIndex() {
+      let total = 0;
+      for (let i = 0; i < ITEMS.length; i++) total += ITEMS[i].weight;
+      let rnd = Math.random() * total;
+      for (let i = 0; i < ITEMS.length; i++) {
+        if (rnd < ITEMS[i].weight) return i;
+        rnd -= ITEMS[i].weight;
+      }
+      return 0;
+    }
+
+    spinBtn.addEventListener('click', function() {
+      if (isSpinning || balance < 100) return;
+
+      balance -= 100;
+      balanceEl.textContent = balance;
+      isSpinning = true;
+      spinBtn.disabled = true;
+
+      for (let i = 0; i < cardElements.length; i++) {
+        cardElements[i].classList.remove('active-cursor', 'winner-glow');
+      }
+
+      const winnerIdx = pickWinnerIndex();
+      const totalSteps = ITEMS.length * 3 + winnerIdx;
+      let currentStep = 0;
+
+      function step() {
+        for (let i = 0; i < cardElements.length; i++) {
+          cardElements[i].classList.remove('active-cursor');
+        }
+        const activeIdx = currentStep % ITEMS.length;
+        const activeCard = cardElements[activeIdx];
+        activeCard.classList.add('active-cursor');
+
+        const progress = currentStep / totalSteps;
+        playTickSound(650 - progress * 250);
+
+        if (currentStep < totalSteps) {
+          currentStep++;
+          const delay = 45 + Math.pow(progress, 3) * 340;
+          setTimeout(step, delay);
+        } else {
+          activeCard.classList.add('winner-glow');
+          const wonItem = ITEMS[winnerIdx];
+          const isStatTrack = wonItem.stChance > 0 && Math.random() < wonItem.stChance;
+
+          setTimeout(function() {
+            showWinModal(wonItem, isStatTrack);
+            isSpinning = false;
+            spinBtn.disabled = balance < 100;
+          }, 700);
+        }
+      }
+
+      step();
+    });
+
+    function showWinModal(item, isST) {
+      const colors = { arcane: '#ef4444', legendary: '#ec4899', epic: '#a855f7', rare: '#3b82f6' };
+      const color = colors[item.rarity];
+      winModalCard.style.setProperty('--win-color', color);
+      winNameEl.textContent = item.name;
+      winPreviewEl.textContent = item.icon;
+
+      winBadgeContainer.innerHTML = '';
+      const badge = document.createElement('div');
+      if (isST) {
+        badge.className = 'win-st-badge';
+        badge.textContent = '★ STATTRACK™ ВЕРСИЯ';
+      } else {
+        badge.style.color = color;
+        badge.style.fontWeight = '700';
+        badge.style.letterSpacing = '2px';
+        badge.style.marginBottom = '12px';
+        badge.textContent = item.label;
+      }
+      winBadgeContainer.appendChild(badge);
+      winModal.style.display = 'flex';
+    }
+
+    document.getElementById('claimBtn').addEventListener('click', function() {
+      winModal.style.display = 'none';
+    });
+
+    document.getElementById('addCoinsBtn').addEventListener('click', function() {
+      balance += 500;
+      balanceEl.textContent = balance;
+      if (!isSpinning && balance >= 100) spinBtn.disabled = false;
+    });
+
+    document.getElementById('infoBtn').addEventListener('click', function() {
+      alert(
+        "Шансы выпадения категорий (10 слотов):\n" +
+        "• Rare (2 слота): 68.50% (StatTrack: 6.23%)\n" +
+        "• Epic (2 слота): 25.00% (StatTrack: 2.27%)\n" +
+        "• Legendary (1 слот): 5.00% (StatTrack: 0.45%)\n" +
+        "• Arcane (5 слотов): 1.50% (StatTrack: 0.09%)"
+      );
+    });
+
+    const pCanvas = document.getElementById('particles');
+    const pCtx = pCanvas.getContext('2d');
+    const sparks = [];
+
+    function resizeParticles() {
+      pCanvas.width = window.innerWidth;
+      pCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeParticles);
+    resizeParticles();
+
+    for (let i = 0; i < 40; i++) {
+      sparks.push({
+        x: Math.random() * pCanvas.width,
+        y: Math.random() * pCanvas.height,
+        r: Math.random() * 2 + 0.8,
+        vy: -(Math.random() * 0.6 + 0.2),
+        vx: (Math.random() - 0.5) * 0.4,
+        alpha: Math.random() * 0.7 + 0.2
+      });
+    }
+
+    function animateSparks() {
+      pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+      for (let i = 0; i < sparks.length; i++) {
+        const s = sparks[i];
+        s.x += s.vx;
+        s.y += s.vy;
+        if (s.y < 0) { s.y = pCanvas.height; s.x = Math.random() * pCanvas.width; }
+        pCtx.beginPath();
+        pCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        pCtx.fillStyle = 'rgba(239, 68, 68, ' + s.alpha + ')';
+        pCtx.fill();
+      }
+      requestAnimationFrame(animateSparks);
+    }
+    animateSparks();
+  </script>
+</body>
+</html>
